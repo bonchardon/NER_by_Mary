@@ -7,6 +7,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+loguru = "^0.7.3"
+transformers = "^4.47.1"
+datasets = "^3.2.0"
+kagglehub = "^0.3.6"
+scikit-learn = "^1.6.1"
+matplotlib = "^3.10.0"
+seaborn = "^0.13.2"
+numpy = "^2.2.1"
 
 
 [build-system]
