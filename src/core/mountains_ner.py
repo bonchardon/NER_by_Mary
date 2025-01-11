@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification, Trainer, TrainingArguments
@@ -27,7 +27,6 @@ class MountainsNER:
         """
         dataset = load_dataset("telord/mountains-ner-dataset")
         logger.info(dataset)
-        logger.info(dataset['train']['sentence'])
         return dataset
 
     class MountainNERDataset(Dataset):
@@ -65,16 +64,20 @@ class MountainsNER:
             # Create the tensor for labels
             encoding['labels'] = torch.tensor(labels, dtype=torch.long)
 
-            # Return the encoding with input_ids, attention_mask, and labels
+            # Get the input_ids and attention_mask from the encoding
+            input_ids = encoding['input_ids'].squeeze(0)  # Remove extra dimension
+            attention_mask = encoding['attention_mask'].squeeze(0)
+
+            # Pad labels to match the input sequence length
+            labels = labels + [0] * (self.max_length - len(labels))  # Pad to max_length
+            labels = torch.tensor(labels, dtype=torch.long)
+
+            # Return a dictionary of tensors
             return {
                 'input_ids': input_ids,
                 'attention_mask': attention_mask,
-                'labels': encoding['labels']
+                'labels': labels
             }
-
-            # labels = labels + [0] * (self.max_length - len(labels))  # Pad labels
-            # encoding['labels'] = torch.tensor(labels, dtype=torch.long)
-            # return encoding
 
     async def fine_tune_model(self):
         """
@@ -82,7 +85,8 @@ class MountainsNER:
         """
         # Load the dataset and tokenizer
         dataset = await self.get_dataset()
-        tokenizer = AutoTokenizer.from_pretrained("Gepe55o/mountain-ner-bert-base", ignore_mismatched_sizes=True)
+        tokenizer = AutoTokenizer.from_pretrained('Gepe55o/mountain-ner-bert-base', ignore_mismatched_sizes=True)
+
         train_dataset = self.MountainNERDataset(dataset['train'], tokenizer)
         val_dataset = self.MountainNERDataset(dataset['test'], tokenizer)
 
@@ -92,7 +96,7 @@ class MountainsNER:
         # Set up training arguments
         training_args = TrainingArguments(
             output_dir='./results',
-            evaluation_strategy="epoch",
+            evaluation_strategy='epoch',
             learning_rate=2e-5,
             per_device_train_batch_size=16,
             per_device_eval_batch_size=64,
@@ -101,9 +105,10 @@ class MountainsNER:
             logging_dir='./logs',
             logging_steps=200,
             save_steps=500,
+            gradient_accumulation_steps=2,
+            fp16=torch.cuda.is_available(),
         )
 
-        # Set up trainer
         trainer = Trainer(
             model=model,
             args=training_args,
@@ -111,7 +116,6 @@ class MountainsNER:
             eval_dataset=val_dataset,
         )
 
-        # Start training
         trainer.train()
 
         # Save the fine-tuned model
