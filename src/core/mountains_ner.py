@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torch.nn.functional as F
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification, Trainer, TrainingArguments
@@ -47,7 +47,6 @@ class MountainsNER:
             encoding = self.tokenizer(
                 [sentence],
                 padding='max_length',
-                # padding=True,
                 truncation=True,
                 max_length=512,
                 return_tensors='pt',
@@ -94,7 +93,7 @@ class MountainsNER:
         model = AutoModelForTokenClassification.from_pretrained('Gepe55o/mountain-ner-bert-base', num_labels=5, ignore_mismatched_sizes=True)
 
         # Set up training arguments
-        training_args = TrainingArguments(
+        training_args: TrainingArguments = TrainingArguments(
             output_dir='./results',
             evaluation_strategy='epoch',
             learning_rate=2e-5,
@@ -109,7 +108,7 @@ class MountainsNER:
             fp16=torch.cuda.is_available(),
         )
 
-        trainer = Trainer(
+        trainer: Trainer = Trainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
@@ -158,12 +157,12 @@ class MountainsNER:
         treatments, frequencies = zip(*treatment_freq)
 
         top_n = 10
-        top_treatments = treatments[:top_n]
-        related_treatments = self.get_related_treatments(cls_similarity, top_treatments)
+        mountains = treatments[:top_n]
+        related_treatments = self.get_related_treatments(cls_similarity, mountains)
 
         # Save the results to a DataFrame
         data = {
-            'Mountain (NER)': top_treatments,
+            'Mountain (NER)': mountains,
             'Frequency': frequencies[:top_n],
         }
 
@@ -171,7 +170,7 @@ class MountainsNER:
         result_df.to_csv('MOUNTAINS_NER.csv', index=False)
 
         logger.info(f'Top mountains based on BERT similarity algorithm: {related_treatments}')
-        self.visualize_top_treatments(top_treatments, frequencies[:top_n], related_treatments)
+        self.visualize_top_treatments(mountains, frequencies[:top_n], related_treatments)
 
     def get_related_treatments(self, similarity_matrix, top_treatments):
         """
