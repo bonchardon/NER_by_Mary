@@ -71,10 +71,6 @@ class MountainsNER:
                 'labels': encoding['labels']
             }
 
-            # labels = labels + [0] * (self.max_length - len(labels))  # Pad labels
-            # encoding['labels'] = torch.tensor(labels, dtype=torch.long)
-            # return encoding
-
     async def fine_tune_model(self):
         """
         Fine-tune the `Gepe55o/mountain-ner-bert-base` model on the `mountains-ner` dataset.
