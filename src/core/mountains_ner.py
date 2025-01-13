@@ -17,6 +17,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+from src.core.consts import MOUNTAIN_DATASET, MOUNTAIN_MODEL
+
 
 class MountainsNER:
 
@@ -25,7 +27,7 @@ class MountainsNER:
         """
         Here I import and use preprocessed dataset (telord/mountains-ner-dataset).
         """
-        dataset = load_dataset("telord/mountains-ner-dataset")
+        dataset = load_dataset(MOUNTAIN_DATASET)
         logger.info(dataset)
         return dataset
 
@@ -84,13 +86,17 @@ class MountainsNER:
         """
         # Load the dataset and tokenizer
         dataset = await self.get_dataset()
-        tokenizer = AutoTokenizer.from_pretrained('Gepe55o/mountain-ner-bert-base', ignore_mismatched_sizes=True)
+        tokenizer = AutoTokenizer.from_pretrained(MOUNTAIN_MODEL, ignore_mismatched_sizes=True)
 
         train_dataset = self.MountainNERDataset(dataset['train'], tokenizer)
         val_dataset = self.MountainNERDataset(dataset['test'], tokenizer)
 
         # Load pre-trained model
-        model = AutoModelForTokenClassification.from_pretrained('Gepe55o/mountain-ner-bert-base', num_labels=5, ignore_mismatched_sizes=True)
+        model = AutoModelForTokenClassification.from_pretrained(
+            MOUNTAIN_MODEL,
+            num_labels=5,
+            ignore_mismatched_sizes=True
+        )
 
         # Set up training arguments
         training_args: TrainingArguments = TrainingArguments(
